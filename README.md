@@ -9,7 +9,12 @@ The OpenBikeSensor Lite is currently in development and not available to build y
 ## Quickstart
 
 * Install PlatformIO, either the IDE version or just the CLI tools are fine. 
-* Wire up the sensors and buttons according to the schematics from [the obs-lite branch of the PCB repository](https://github.com/openbikesensor/OpenBikeSensor_PCB_Board/tree/obs-lite/OpenBikeSensorLite).
+* Wire up the sensors and buttons according to the schematics from [the obs-lite branch of the PCB repository](https://github.com/openbikesensor/OpenBikeSensor_PCB_Board/tree/obs-lite/OpenBikeSensorLite). That is:
+    * Sensor A Echo: GPIO 4 / Pin 20
+    * Sensor A Trigger: GPIO 15 / Pin 18
+    * Sensor B Echo: GPIO 26 / Pin 8
+    * Sensor B Trigger: GPIO 25 / Pin 9
+    * Button: GPIO 2 / Pin 19 -- button connects the pin to ground (internal pull-up)
 * Attach your ESP32 to the USB Port of your computer.
 * Build and run the PlatformIO project. It should upload the binary, then start running.
 * You should be able to decode the data stream on the serial port using the [OpenBikeSensor Recording Format](https://github.com/openbikesensor/proto), for example with the included [`examples/reader.py`](https://github.com/openbikesensor/proto/blob/main/examples/reader.py) script.
