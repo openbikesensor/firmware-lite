@@ -1,12 +1,18 @@
 #include <Arduino.h>
 #include <pb_encode.h>
 #include <pb_decode.h>
+#include <utils/button.h>
 
 #include <PacketSerial.h>
 
 PacketSerial packetSerial;
 
 #include "openbikesensor.pb.h"
+
+// Button config
+const int PUSHBUTTON_PIN = 2;
+int numButtonReleased = 0;
+Button button(PUSHBUTTON_PIN);
 
 uint8_t pb_buffer[1024];
 pb_ostream_t pb_ostream;
@@ -70,6 +76,31 @@ void send_distance_measurement(uint32_t source_id, float distance, uint64_t time
     event.content.distance_measurement = distance_measurement;
     event.which_content = openbikesensor_Event_distance_measurement_tag;
     
+    // write out
+    pb_ostream = pb_ostream_from_buffer(pb_buffer, sizeof(pb_buffer));
+    pb_encode(&pb_ostream, &openbikesensor_Event_msg, &event);
+    packetSerial.send(pb_buffer, pb_ostream.bytes_written);
+}
+
+void send_button_press() {
+    // create the time
+    openbikesensor_Time cpu_time = openbikesensor_Time_init_zero;
+    uint32_t us = micros();
+    cpu_time.seconds = us / 1000000;
+    cpu_time.nanoseconds = (us % 1000000) * 1000;
+
+    openbikesensor_UserInput user_input = openbikesensor_UserInput_init_zero;
+    user_input.type = openbikesensor_UserInput_Type_OVERTAKER;
+    user_input.direction = openbikesensor_UserInput_Direction_LEFT;
+    user_input.timing = openbikesensor_UserInput_Timing_IMMEDIATE;
+
+    // create the event
+    openbikesensor_Event event = openbikesensor_Event_init_zero;
+    event.time_count = 1;
+    event.time[0] = cpu_time;
+    event.content.user_input = user_input;
+    event.which_content = openbikesensor_Event_user_input_tag;
+
     // write out
     pb_ostream = pb_ostream_from_buffer(pb_buffer, sizeof(pb_buffer));
     pb_encode(&pb_ostream, &openbikesensor_Event_msg, &event);
@@ -277,6 +308,13 @@ void loop() {
             send_distance_measurement(sensor.source_id, distance, tof);
             sensor.has_new_measurement = false;
         }
+    }
+
+    button.handle();
+
+    if (button.gotPressed()) {
+        send_button_press();
+        //send_text_message("Button got pressed");
     }
 
     // read and receive packets from serial input
