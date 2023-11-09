@@ -6,6 +6,29 @@ If you are looking for the firmware for the existing, "Classic" OpenBikeSensor, 
 
 The OpenBikeSensor Lite is currently in development and not available to build yet. There are no build instructions, and this firmware, the recording software, data format and enclosure are not completed. Please go over to the [OpenBikeSensor Website](https://www.openbikesensor.org/docs/hardware/) if you're interested in building your own device, it contains all information for the Classic version of the OpenBikeSensor.
 
+## Building
+
+Required: 
+- recent python version installed
+- possibly drivers for usb-serial installed
+
+To build and upload to obs-lite do the following:
+
+```bash
+# take care to clone including submodules
+git clone --recurse-submodules https://github.com/opatut/obs-firmware-lite.git
+cd obs-firmware-lite/
+
+# create a venv to not pollute the global interpreter
+python3 -m venv venv
+
+# install platformio
+venv/bin/pip install platformio
+
+# build and upload to obs lite
+venv/bin/platformio run -t upload
+```
+
 ## Quickstart
 
 * Install PlatformIO, either the IDE version or just the CLI tools are fine. 
