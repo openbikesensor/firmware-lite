@@ -200,10 +200,10 @@ public:
                 slave.triggered = now;
                 slave.timeout_at = timeout_at - min_delay;
                 digitalWrite(slave.trigger_pin, HIGH);
-            }
+            } 
             digitalWrite(trigger_pin, HIGH);
 
-            delayMicroseconds(20);
+            delayMicroseconds(15);
             digitalWrite(trigger_pin, LOW);
             if (slave_ready) {
                 digitalWrite(slave.trigger_pin, LOW);
