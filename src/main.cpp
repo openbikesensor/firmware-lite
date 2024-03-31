@@ -17,25 +17,21 @@ Button button(PUSHBUTTON_PIN);
 uint8_t pb_buffer[1024];
 pb_ostream_t pb_ostream;
 
-bool _write_string(pb_ostream_t *stream, const pb_field_iter_t *field, void *const *arg)
-{
-    String &str = *((String *)(*arg));
+bool _write_string(pb_ostream_t* stream, const pb_field_iter_t* field, void* const* arg) {
+    String& str = *((String*)(*arg));
 
-    if (!pb_encode_tag_for_field(stream, field))
-    {
+    if (!pb_encode_tag_for_field(stream, field)) {
         return false;
     }
 
-    return pb_encode_string(stream, (uint8_t *)str.c_str(), str.length());
+    return pb_encode_string(stream, (uint8_t*)str.c_str(), str.length());
 }
-void write_string(pb_callback_t &target, String &str)
-{
+void write_string(pb_callback_t& target, String& str) {
     target.arg = &str;
     target.funcs.encode = &_write_string;
 }
 
-void send_text_message(String message, openbikesensor_TextMessage_Type type = openbikesensor_TextMessage_Type_INFO)
-{
+void send_text_message(String message, openbikesensor_TextMessage_Type type = openbikesensor_TextMessage_Type_INFO) {
     // create the time
     openbikesensor_Time cpu_time = openbikesensor_Time_init_zero;
     uint32_t us = micros();
@@ -60,8 +56,7 @@ void send_text_message(String message, openbikesensor_TextMessage_Type type = op
     packetSerial.send(pb_buffer, pb_ostream.bytes_written);
 }
 
-void send_distance_measurement(uint32_t source_id, float distance, uint64_t time_of_flight)
-{
+void send_distance_measurement(uint32_t source_id, float distance, uint64_t time_of_flight) {
     // create the time
     openbikesensor_Time cpu_time = openbikesensor_Time_init_zero;
     uint32_t us = micros();
@@ -87,8 +82,7 @@ void send_distance_measurement(uint32_t source_id, float distance, uint64_t time
     packetSerial.send(pb_buffer, pb_ostream.bytes_written);
 }
 
-void send_button_press()
-{
+void send_button_press() {
     // create the time
     openbikesensor_Time cpu_time = openbikesensor_Time_init_zero;
     uint32_t us = micros();
@@ -113,8 +107,7 @@ void send_button_press()
     packetSerial.send(pb_buffer, pb_ostream.bytes_written);
 }
 
-void send_heartbeat()
-{
+void send_heartbeat() {
     // create the time
     openbikesensor_Time cpu_time = openbikesensor_Time_init_zero;
     uint32_t us = micros();
@@ -132,15 +125,13 @@ void send_heartbeat()
     packetSerial.send(pb_buffer, pb_ostream.bytes_written);
 }
 
-class SensorMeasurement
-{
+class SensorMeasurement {
 public:
     uint32_t start;
     uint32_t tof; // microseconds
     bool timeout = false;
 
-    const double get_distance(const double temperature = 19.307) const
-    {
+    const double get_distance(const double temperature = 19.307) const {
         // temperature in degree celsius, returns meters
 
         // formula from https://www.engineeringtoolbox.com/air-speed-sound-d_603.html
@@ -151,39 +142,33 @@ public:
     }
 };
 
-class Sensor
-{
+class Sensor {
 public:
     Sensor(uint8_t source_id_, uint8_t _trigger_pin, uint8_t _echo_pin) : source_id(source_id_),
-                                                                          trigger_pin(_trigger_pin),
-                                                                          echo_pin(_echo_pin) {}
+        trigger_pin(_trigger_pin),
+        echo_pin(_echo_pin) {    
+}
 
-    void begin(void interrupt_echo())
-    {
+    void begin(void interrupt_echo()) {
         pinMode(echo_pin, INPUT_PULLUP);
         attachInterrupt(digitalPinToInterrupt(echo_pin), interrupt_echo, CHANGE);
         pinMode(trigger_pin, OUTPUT);
     }
 
-    void echo()
-    {
-        if (digitalRead(echo_pin))
-        {
+    void echo() {
+        if (digitalRead(echo_pin)) {
             start = micros();
         }
-        else
-        {
+        else {
             end = micros();
         }
     }
 
-    void update(bool master, Sensor slave)
-    {
+    void update(bool master, Sensor slave) {
         uint32_t now = micros();
 
         // Read response
-        if (start > 0 && end > 0)
-        {
+        if (start > 0 && end > 0) {
             uint32_t tof = end - start;
             measurement.start = start;
             measurement.tof = end - start;
@@ -201,8 +186,7 @@ public:
         }
 
         // Trigger
-        if (trigger_at > 0 && now > trigger_at && master)
-        {
+        if (trigger_at > 0 && now > trigger_at && master) {
             // Start the timeout, stop triggering
 
             // Pull trigger line high for >10us
@@ -210,27 +194,24 @@ public:
             trigger_at = 0;
             triggered = now;
             timeout_at = now + timeout;
-            bool slave_ready = (slave.trigger_at>0) && (now>slave.trigger_at);
-            if (slave_ready)
-            {
+            bool slave_ready = (slave.trigger_at > 0) && (now > slave.trigger_at);
+            if (slave_ready) {
                 slave.trigger_at = 0;
                 slave.triggered = now;
                 slave.timeout_at = timeout_at - min_delay;
                 digitalWrite(slave.trigger_pin, HIGH);
-            } 
+            }
             digitalWrite(trigger_pin, HIGH);
 
             delayMicroseconds(20);
             digitalWrite(trigger_pin, LOW);
-            if (slave_ready)
-            {
+            if (slave_ready) {
                 digitalWrite(slave.trigger_pin, LOW);
             }
         }
 
         // Timeout
-        if (timeout_at > 0 && now > timeout_at)
-        {
+        if (timeout_at > 0 && now > timeout_at) {
             trigger_at = max(triggered + interval, now + min_delay);
             triggered = 0;
             start = 0;
@@ -269,30 +250,24 @@ Sensor sensors[] = {
 };
 uint8_t sensors_length = 2;
 
-void IRAM_ATTR interrupt_sensor0()
-{
+void IRAM_ATTR interrupt_sensor0() {
     sensors[0].echo();
 }
 
-void IRAM_ATTR interrupt_sensor1()
-{
+void IRAM_ATTR interrupt_sensor1() {
     sensors[1].echo();
 }
 
-class Timer
-{
+class Timer {
 public:
     Timer(uint32_t delay_) : delay(delay_) {}
 
-    void start()
-    {
+    void start() {
         trigger_at = millis() + delay;
     }
 
-    bool check()
-    {
-        if (trigger_at <= millis())
-        {
+    bool check() {
+        if (trigger_at <= millis()) {
             trigger_at = 0;
             return true;
         }
@@ -306,8 +281,7 @@ private:
 
 Timer heartbeat(1000);
 
-void setup()
-{
+void setup() {
     packetSerial.begin(115200);
 
     sensors[0].begin(interrupt_sensor0);
@@ -316,35 +290,29 @@ void setup()
     heartbeat.start();
 }
 
-void loop()
-{
+void loop() {
     // update all sensors, triggering them as required and processing returned
     // interrupts
-    for (uint8_t i = 0; i < sensors_length; i++)
-    {
-        sensors[i].update(i==0, sensors[1]);
+    for (uint8_t i = 0; i < sensors_length; i++) {
+        sensors[i].update(i == 0, sensors[1]);
     }
 
-    if (heartbeat.check())
-    {
+    if (heartbeat.check()) {
         send_heartbeat();
         heartbeat.start();
     }
 
     // read all measurements and send them via serial
-    for (uint8_t i = 0; i < sensors_length; i++)
-    {
-        Sensor &sensor = sensors[i];
+    for (uint8_t i = 0; i < sensors_length; i++) {
+        Sensor& sensor = sensors[i];
 
-        if (sensor.has_new_measurement)
-        {
-            SensorMeasurement const &measurement = sensor.measurement;
+        if (sensor.has_new_measurement) {
+            SensorMeasurement const& measurement = sensor.measurement;
 
             double distance = 99.0;
             uint32_t tof = 10000;
 
-            if (!measurement.timeout)
-            {
+            if (!measurement.timeout) {
                 distance = measurement.get_distance();
                 tof = measurement.tof * 1000; // microseconds to nanoseconds
             }
@@ -356,8 +324,7 @@ void loop()
 
     button.handle();
 
-    if (button.gotPressed())
-    {
+    if (button.gotPressed()) {
         send_button_press();
         // send_text_message("Button got pressed");
     }
