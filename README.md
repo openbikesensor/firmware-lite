@@ -13,6 +13,10 @@ Required:
 - possibly drivers for usb-serial installed
 
 To build and upload to obs-lite do the following:
+ 
+> [!NOTE]
+> Some ESP modules will require you to push the boot button at the beginning of the flashing process. Try that in case 
+> you get error messages about connection problems while flashing.
 
 ```bash
 # take care to clone including submodules
